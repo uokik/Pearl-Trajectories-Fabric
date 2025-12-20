@@ -7,7 +7,11 @@
 
 
 # Pearl Trajectories 
+
 ## ender pearl trajectory visualization 
+
+Demo video:<br>
+[![DEMO](https://img.youtube.com/vi/ZnXusTfVyr0/1.jpg)](https://youtu.be/ZnXusTfVyr0)
 
 ### Features
 - beam after landing the pearl
