@@ -1,4 +1,4 @@
-package net.szokk.PearlTrajectories;
+package net.szokk.PearlTrajectories.client;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import java.util.ArrayList;
@@ -6,16 +6,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+
+import com.mojang.blaze3d.vertex.VertexFormat;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.*;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.projectile.thrown.EnderPearlEntity;
 import net.minecraft.particle.ParticleTypes;
@@ -36,13 +36,16 @@ public class MainClient implements ClientModInitializer {
     private static final float CYLINDER_RADIUS = 0.05F;
     private static final double MIN_DISTANCE_THRESHOLD = 0.02D;
 
+    private static final RenderLayer PEARL_TRAIL_LAYER = RenderLayer.getDebugQuads();
+
+
     public void onInitializeClient() {
         System.out.println("[Pearl Trajectories] Initializing :v");
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.world == null || client.player == null)
                 return;
 
-            Vec3d playerPos = client.player.getPos();
+            Vec3d playerPos = client.player.getEntityPos();
             Box searchBox = new Box(
                     playerPos.subtract(200.0D, 200.0D, 200.0D),
                     playerPos.add(200.0D, 200.0D, 200.0D));
@@ -62,7 +65,7 @@ public class MainClient implements ClientModInitializer {
 
 
                             for (int i = 0; i < 30; i++) {
-                                client.world.addParticle(
+                                client.world.addParticleClient(
                                         ParticleTypes.PORTAL,
                                         landingPos.x + (Math.random() - 0.5) * 2,
                                         landingPos.y + Math.random() * 2,
@@ -95,7 +98,7 @@ public class MainClient implements ClientModInitializer {
                         continue;
                     }
 
-                    Vec3d currentPos = pearl.getPos();
+                    Vec3d currentPos = pearl.getEntityPos();
                     Vec3d lastPos = PEARL_LAST_POS.get(pearl);
 
                     if (lastPos != null) {
@@ -132,37 +135,31 @@ public class MainClient implements ClientModInitializer {
         if (client.world == null)
             return;
 
-        Vec3d cameraPos = context.camera().getPos();
-        MatrixStack matrices = context.matrixStack();
+        // Vec3d cameraPos = context.camera().getPos();
+        Vec3d cameraPos = client.gameRenderer.getCamera().getPos();
+        MatrixStack matrices = context.matrices();
         VertexConsumerProvider consumers = context.consumers();
-
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.disableDepthTest();
-        RenderSystem.disableCull();
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-
-        VertexConsumer vertexConsumer = consumers.getBuffer(RenderLayer.getDebugQuads());
 
         matrices.push();
 
         if (!PEARL_TRAILS.isEmpty()) {
+            VertexConsumer trailBuffer = consumers.getBuffer(PEARL_TRAIL_LAYER);
             for (Map.Entry<EnderPearlEntity, List<Vec3d>> entry : PEARL_TRAILS.entrySet()) {
                 if (entry.getValue().size() >= 2) {
-                    renderCylindricalTrail(entry.getValue(), cameraPos, matrices, vertexConsumer);
+                    renderCylindricalTrail(entry.getValue(), cameraPos, matrices, trailBuffer);
                 }
             }
         }
 
 
         if (!LANDING_EFFECTS.isEmpty()) {
+            VertexConsumer landingBuffer = consumers.getBuffer(RenderLayer.getDebugQuads());
             long currentTime = System.currentTimeMillis();
             for (Map.Entry<Vec3d, Long> entry : LANDING_EFFECTS.entrySet()) {
                 Vec3d landingPos = entry.getKey();
                 long spawnTime = entry.getValue();
                 float age = (currentTime - spawnTime) / 1000.0F;
-
-                renderLandingEffect(landingPos, age, cameraPos, matrices, vertexConsumer);
+                renderLandingEffect(landingPos, age, cameraPos, matrices, landingBuffer);
             }
         }
 
@@ -171,10 +168,6 @@ public class MainClient implements ClientModInitializer {
         if (consumers instanceof VertexConsumerProvider.Immediate immediate) {
             immediate.draw();
         }
-
-        RenderSystem.enableCull();
-        RenderSystem.enableDepthTest();
-        RenderSystem.disableBlend();
     }
 
     private void renderCylindricalTrail(List<Vec3d> trail, Vec3d cameraPos,
