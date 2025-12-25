@@ -9,7 +9,7 @@
 ### Why?
 - helps you see where the opponent's pearl is flying and where it lands
 
-> ### If you like my work, give it a ❤ it help
+> ### If you like my work, give it a ⭐ it help
 
 # v2.0
 > # The Visual Update
