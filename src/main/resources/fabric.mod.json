@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "pearltrajectories",
+  "version": "${version}",
+  "name": "PearlTrajectories",
+  "description": "ender pearl trajectory visualization mod",
+  "authors": ["szok"],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/icon/icon.png",
+
+  "environment": "client",
+
+  "entrypoints": {
+    "client": [
+      "net.szokk.PearlTrajectories.client.MainClient"
+    ],
+    "modmenu": [
+      "net.szokk.PearlTrajectories.client.integration.ModMenuIntegration"
+    ]
+  },
+
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}",
+    "java": ">=21"
+  },
+
+  "suggests": {
+    "modmenu": "*"
+  }
+}
